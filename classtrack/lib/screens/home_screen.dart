@@ -5,8 +5,10 @@ import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/course_provider.dart';
 import '../providers/student_provider.dart';
+import '../providers/routine_provider.dart';
 import 'courses_screen.dart';
 import 'students_screen.dart';
+import 'routine_screen.dart';
 import 'login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -24,7 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
     const StudentsScreen(),
     const PlaceholderScreen(title: 'Attendance'),
     const PlaceholderScreen(title: 'Summary'),
-    const PlaceholderScreen(title: 'Routine'),
+    const RoutineScreen(),
   ];
 
   @override
@@ -42,9 +44,14 @@ class _HomeScreenState extends State<HomeScreen> {
           context,
           listen: false,
         );
+        final routineProvider = Provider.of<RoutineProvider>(
+          context,
+          listen: false,
+        );
 
         courseProvider.loadCourses(authProvider.user!.uid);
         studentProvider.loadStudents(authProvider.user!.uid);
+        routineProvider.loadRoutines(authProvider.user!.uid);
       }
     });
   }

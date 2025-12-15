@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/course.dart';
 import '../models/student.dart';
+import '../models/routine.dart';
 
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -224,6 +225,49 @@ class FirestoreService {
         .doc(courseId)
         .collection('content')
         .doc('ai_generated')
+        .delete();
+  }
+
+  // ==================== ROUTINES ====================
+
+  Stream<List<Routine>> getRoutinesStream(String userId) {
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('routines')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) {
+            return Routine.fromMap(doc.data());
+          }).toList();
+        });
+  }
+
+  Future<void> addRoutine(String userId, Routine routine) async {
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('routines')
+        .doc(routine.id)
+        .set(routine.toMap());
+  }
+
+  Future<void> updateRoutine(String userId, Routine routine) async {
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('routines')
+        .doc(routine.id)
+        .update(routine.toMap());
+  }
+
+  Future<void> deleteRoutine(String userId, String routineId) async {
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('routines')
+        .doc(routineId)
         .delete();
   }
 }
