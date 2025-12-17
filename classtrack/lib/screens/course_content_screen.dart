@@ -18,7 +18,7 @@ class CourseContentScreen extends StatefulWidget {
 }
 
 class _CourseContentScreenState extends State<CourseContentScreen> {
-  final AzureOpenAIService _aiService = AzureOpenAIService();
+  final GeminiService _aiService = GeminiService();
   final FirestoreService _firestoreService = FirestoreService();
   bool _isLoading = false;
   Map<String, dynamic>? _courseContent;

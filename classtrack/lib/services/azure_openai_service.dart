@@ -2,9 +2,33 @@ import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
-class AzureOpenAIService {
-  final String _endpoint = dotenv.env['AZURE_OPENAI_ENDPOINT'] ?? '';
-  final String _apiKey = dotenv.env['AZURE_OPENAI_API_KEY'] ?? '';
+class GeminiService {
+  final String _apiKey = dotenv.env['GROQ_API_KEY'] ?? '';
+  final String _baseUrl = 'https://api.groq.com/openai/v1/chat/completions';
+
+  String _cleanText(String text) {
+    // Remove markdown formatting
+    String cleaned = text;
+
+    // Remove markdown headers (# ## ### etc.)
+    cleaned = cleaned.replaceAll(RegExp(r'^#{1,6}\s+', multiLine: true), '');
+
+    // Remove bold/italic markers (** __ * _)
+    cleaned = cleaned.replaceAll(RegExp(r'\*\*([^*]+)\*\*'), r'$1');
+    cleaned = cleaned.replaceAll(RegExp(r'__([^_]+)__'), r'$1');
+    cleaned = cleaned.replaceAll(RegExp(r'\*([^*]+)\*'), r'$1');
+    cleaned = cleaned.replaceAll(RegExp(r'_([^_]+)_'), r'$1');
+
+    // Remove code blocks markers
+    cleaned = cleaned.replaceAll(RegExp(r'```[a-z]*\n?'), '');
+    cleaned = cleaned.replaceAll(RegExp(r'`([^`]+)`'), r'$1');
+
+    // Remove extra whitespace
+    cleaned = cleaned.replaceAll(RegExp(r'\n\s*\n\s*\n'), '\n\n');
+    cleaned = cleaned.trim();
+
+    return cleaned;
+  }
 
   Future<Map<String, dynamic>> generateCourseContent({
     required String courseName,
@@ -12,20 +36,24 @@ class AzureOpenAIService {
     String? description,
   }) async {
     try {
-      if (_endpoint.isEmpty || _apiKey.isEmpty) {
-        throw Exception('Azure OpenAI credentials not configured');
+      if (_apiKey.isEmpty) {
+        throw Exception('Groq API key not configured');
       }
 
       final prompt = _buildPrompt(courseName, courseCode, description);
 
-      print('🔵 Calling Azure OpenAI API...');
-      print('Endpoint: ${_endpoint.split('?').first}');
+      print('🔵 Calling Groq API...');
+      print('Model: llama-3.3-70b-versatile');
 
       final response = await http
           .post(
-            Uri.parse(_endpoint),
-            headers: {'Content-Type': 'application/json', 'api-key': _apiKey},
+            Uri.parse(_baseUrl),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $_apiKey',
+            },
             body: jsonEncode({
+              'model': 'llama-3.3-70b-versatile',
               'messages': [
                 {
                   'role': 'system',
@@ -34,8 +62,8 @@ class AzureOpenAIService {
                 },
                 {'role': 'user', 'content': prompt},
               ],
-              'max_tokens': 2000,
               'temperature': 0.7,
+              'max_tokens': 2000,
             }),
           )
           .timeout(
@@ -56,7 +84,70 @@ class AzureOpenAIService {
 
         // Parse the AI response (assuming it returns JSON)
         try {
-          final courseContent = jsonDecode(content);
+          // Extract JSON from markdown code blocks if present
+          String jsonContent = content;
+          if (content.contains('```json')) {
+            final startIndex = content.indexOf('```json') + 7;
+            final endIndex = content.lastIndexOf('```');
+            jsonContent = content.substring(startIndex, endIndex).trim();
+          } else if (content.contains('```')) {
+            final startIndex = content.indexOf('```') + 3;
+            final endIndex = content.lastIndexOf('```');
+            jsonContent = content.substring(startIndex, endIndex).trim();
+          }
+
+          final courseContent = jsonDecode(jsonContent);
+
+          // Clean markdown from all text fields
+          if (courseContent is Map) {
+            final cleaned = Map<String, dynamic>.from(courseContent);
+            if (cleaned['overview'] != null) {
+              cleaned['overview'] = _cleanText(cleaned['overview'].toString());
+            }
+            if (cleaned['topics'] is List) {
+              cleaned['topics'] = (cleaned['topics'] as List).map((topic) {
+                if (topic is Map) {
+                  final cleanTopic = Map<String, dynamic>.from(topic);
+                  if (cleanTopic['title'] != null)
+                    cleanTopic['title'] = _cleanText(
+                      cleanTopic['title'].toString(),
+                    );
+                  if (cleanTopic['content'] != null)
+                    cleanTopic['content'] = _cleanText(
+                      cleanTopic['content'].toString(),
+                    );
+                  return cleanTopic;
+                }
+                return topic;
+              }).toList();
+            }
+            if (cleaned['objectives'] is List) {
+              cleaned['objectives'] = (cleaned['objectives'] as List)
+                  .map((obj) => _cleanText(obj.toString()))
+                  .toList();
+            }
+            if (cleaned['assignments'] is List) {
+              cleaned['assignments'] = (cleaned['assignments'] as List).map((
+                assignment,
+              ) {
+                if (assignment is Map) {
+                  final cleanAssignment = Map<String, dynamic>.from(assignment);
+                  if (cleanAssignment['title'] != null)
+                    cleanAssignment['title'] = _cleanText(
+                      cleanAssignment['title'].toString(),
+                    );
+                  if (cleanAssignment['description'] != null)
+                    cleanAssignment['description'] = _cleanText(
+                      cleanAssignment['description'].toString(),
+                    );
+                  return cleanAssignment;
+                }
+                return assignment;
+              }).toList();
+            }
+            return {'success': true, 'data': cleaned};
+          }
+
           return {'success': true, 'data': courseContent};
         } catch (e) {
           print('⚠️ Content is not JSON, using as text');
@@ -64,18 +155,25 @@ class AzureOpenAIService {
           return {
             'success': true,
             'data': {
-              'overview': content,
+              'overview': _cleanText(content),
               'topics': [],
               'objectives': [],
               'assignments': [],
             },
           };
         }
+      } else if (response.statusCode == 429) {
+        print('❌ Quota exceeded error');
+        return {
+          'success': false,
+          'error': 'Groq API quota exceeded. Please try again later.',
+        };
       } else {
         print('❌ Error response: ${response.body}');
         return {
           'success': false,
-          'error': 'API Error ${response.statusCode}: ${response.body}',
+          'error':
+              'API Error ${response.statusCode}. Please check your API key and try again.',
         };
       }
     } catch (e) {
@@ -130,8 +228,8 @@ Generate content for at least 8-12 weeks of topics.
     required String userMessage,
   }) async {
     try {
-      if (_endpoint.isEmpty || _apiKey.isEmpty) {
-        throw Exception('Azure OpenAI credentials not configured');
+      if (_apiKey.isEmpty) {
+        throw Exception('Groq API key not configured');
       }
 
       // Build messages with context
@@ -139,21 +237,24 @@ Generate content for at least 8-12 weeks of topics.
         {
           'role': 'system',
           'content':
-              'You are a helpful teaching assistant for the course "$courseName ($courseCode)". Answer questions about the course content, clarify concepts, provide examples, and help students understand the material better. Be concise but informative.',
+              'You are a helpful teaching assistant for the course "$courseName ($courseCode)". Answer questions about the course content, clarify concepts, provide examples, and help students understand the material better. Be concise but informative. Course Content:\n$courseContent',
         },
-        {'role': 'system', 'content': 'Course Content:\n$courseContent'},
         ...conversationHistory,
         {'role': 'user', 'content': userMessage},
       ];
 
       final response = await http
           .post(
-            Uri.parse(_endpoint),
-            headers: {'Content-Type': 'application/json', 'api-key': _apiKey},
+            Uri.parse(_baseUrl),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $_apiKey',
+            },
             body: jsonEncode({
+              'model': 'llama-3.3-70b-versatile',
               'messages': messages,
-              'max_tokens': 800,
               'temperature': 0.7,
+              'max_tokens': 800,
             }),
           )
           .timeout(const Duration(seconds: 30));
@@ -161,7 +262,7 @@ Generate content for at least 8-12 weeks of topics.
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final content = data['choices'][0]['message']['content'];
-        return {'success': true, 'message': content};
+        return {'success': true, 'message': _cleanText(content)};
       } else {
         return {
           'success': false,
