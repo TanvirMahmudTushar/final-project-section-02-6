@@ -20,6 +20,11 @@ service cloud.firestore {
       match /students/{studentId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
+      
+      // Allow access to user's routines
+      match /routines/{routineId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
     }
   }
 }
