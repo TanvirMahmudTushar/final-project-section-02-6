@@ -44,10 +44,7 @@ class _RoutineScreenState extends State<RoutineScreen> {
   }
 
   void _showAddRoutineDialog() {
-    final courseProvider = Provider.of<CourseProvider>(
-      context,
-      listen: false,
-    );
+    final courseProvider = Provider.of<CourseProvider>(context, listen: false);
 
     if (courseProvider.courses.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -139,10 +136,7 @@ class _RoutineScreenState extends State<RoutineScreen> {
                         dropdownColor: AppColors.cardBackground,
                         style: const TextStyle(color: AppColors.textPrimary),
                         items: _days.map((day) {
-                          return DropdownMenuItem(
-                            value: day,
-                            child: Text(day),
-                          );
+                          return DropdownMenuItem(value: day, child: Text(day));
                         }).toList(),
                         onChanged: (value) {
                           setDialogState(() {
@@ -212,7 +206,8 @@ class _RoutineScreenState extends State<RoutineScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text(
-                                    'Time conflict with existing routine!'),
+                                  'Time conflict with existing routine!',
+                                ),
                                 backgroundColor: AppColors.accentRed,
                               ),
                             );
@@ -243,6 +238,15 @@ class _RoutineScreenState extends State<RoutineScreen> {
                                 backgroundColor: AppColors.accentGreen,
                               ),
                             );
+                          } else if (!success && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Failed to add routine: ${routineProvider.errorMessage ?? "Unknown error"}',
+                                ),
+                                backgroundColor: AppColors.accentRed,
+                              ),
+                            );
                           }
                         }
                       },
@@ -259,10 +263,7 @@ class _RoutineScreenState extends State<RoutineScreen> {
   }
 
   void _showEditRoutineDialog(Routine routine) {
-    final courseProvider = Provider.of<CourseProvider>(
-      context,
-      listen: false,
-    );
+    final courseProvider = Provider.of<CourseProvider>(context, listen: false);
 
     String? selectedCourseId = routine.courseId;
     String selectedDay = routine.day;
@@ -344,10 +345,7 @@ class _RoutineScreenState extends State<RoutineScreen> {
                         dropdownColor: AppColors.cardBackground,
                         style: const TextStyle(color: AppColors.textPrimary),
                         items: _days.map((day) {
-                          return DropdownMenuItem(
-                            value: day,
-                            child: Text(day),
-                          );
+                          return DropdownMenuItem(value: day, child: Text(day));
                         }).toList(),
                         onChanged: (value) {
                           setDialogState(() {
@@ -418,7 +416,8 @@ class _RoutineScreenState extends State<RoutineScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text(
-                                    'Time conflict with existing routine!'),
+                                  'Time conflict with existing routine!',
+                                ),
                                 backgroundColor: AppColors.accentRed,
                               ),
                             );
@@ -559,8 +558,9 @@ class _RoutineScreenState extends State<RoutineScreen> {
                         color: isSelected
                             ? Colors.white
                             : AppColors.textSecondary,
-                        fontWeight:
-                            isSelected ? FontWeight.w600 : FontWeight.normal,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.normal,
                       ),
                     ),
                   );
@@ -637,4 +637,3 @@ class _RoutineScreenState extends State<RoutineScreen> {
     );
   }
 }
-

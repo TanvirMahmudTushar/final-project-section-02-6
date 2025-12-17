@@ -14,6 +14,11 @@ service cloud.firestore {
         match /content/{contentId} {
           allow read, write: if request.auth != null && request.auth.uid == userId;
         }
+        
+        // Allow access to course attendance
+        match /attendance/{attendanceId} {
+          allow read, write: if request.auth != null && request.auth.uid == userId;
+        }
       }
       
       // Allow access to user's students
@@ -23,6 +28,11 @@ service cloud.firestore {
       
       // Allow access to user's routines
       match /routines/{routineId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Allow access to user's attendance records
+      match /attendance/{attendanceId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }

@@ -14,16 +14,18 @@ class RoutineProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   void loadRoutines(String userId) {
-    _firestoreService.getRoutinesStream(userId).listen(
-      (routines) {
-        _routines = routines;
-        notifyListeners();
-      },
-      onError: (error) {
-        _errorMessage = error.toString();
-        notifyListeners();
-      },
-    );
+    _firestoreService
+        .getRoutinesStream(userId)
+        .listen(
+          (routines) {
+            _routines = routines;
+            notifyListeners();
+          },
+          onError: (error) {
+            _errorMessage = error.toString();
+            notifyListeners();
+          },
+        );
   }
 
   List<Routine> getRoutinesByDay(String day) {
@@ -39,7 +41,7 @@ class RoutineProvider extends ChangeNotifier {
       'Thursday',
       'Friday',
       'Saturday',
-      'Sunday'
+      'Sunday',
     ];
     final Map<String, List<Routine>> weekly = {};
 
@@ -61,6 +63,14 @@ class RoutineProvider extends ChangeNotifier {
     String? room,
   }) async {
     try {
+      print('=== Adding Routine ===');
+      print('User ID: $userId');
+      print('Course ID: $courseId');
+      print('Course Name: $courseName');
+      print('Day: $day');
+      print('Time: $startTime - $endTime');
+      print('Room: $room');
+
       _isLoading = true;
       _errorMessage = null;
       notifyListeners();
@@ -77,12 +87,18 @@ class RoutineProvider extends ChangeNotifier {
         createdAt: DateTime.now(),
       );
 
+      print('Routine object created: ${routine.toMap()}');
+      print('Calling Firestore service...');
+
       await _firestoreService.addRoutine(userId, routine);
 
+      print('Routine added successfully to Firestore!');
       _isLoading = false;
       notifyListeners();
       return true;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('Error adding routine: $e');
+      print('Stack trace: $stackTrace');
       _errorMessage = e.toString();
       _isLoading = false;
       notifyListeners();
@@ -128,22 +144,30 @@ class RoutineProvider extends ChangeNotifier {
     }
   }
 
-  bool hasConflict(String day, String startTime, String endTime,
-      {String? excludeRoutineId}) {
-    final dayRoutines = getRoutinesByDay(day)
-        .where((r) => r.id != excludeRoutineId)
-        .toList();
+  bool hasConflict(
+    String day,
+    String startTime,
+    String endTime, {
+    String? excludeRoutineId,
+  }) {
+    final dayRoutines = getRoutinesByDay(
+      day,
+    ).where((r) => r.id != excludeRoutineId).toList();
 
     for (var routine in dayRoutines) {
-      if (_timeOverlaps(startTime, endTime, routine.startTime, routine.endTime)) {
+      if (_timeOverlaps(
+        startTime,
+        endTime,
+        routine.startTime,
+        routine.endTime,
+      )) {
         return true;
       }
     }
     return false;
   }
 
-  bool _timeOverlaps(
-      String start1, String end1, String start2, String end2) {
+  bool _timeOverlaps(String start1, String end1, String start2, String end2) {
     final s1 = _timeToMinutes(start1);
     final e1 = _timeToMinutes(end1);
     final s2 = _timeToMinutes(start2);
@@ -162,4 +186,3 @@ class RoutineProvider extends ChangeNotifier {
     notifyListeners();
   }
 }
-

@@ -9,6 +9,7 @@ import 'providers/course_provider.dart';
 import 'providers/student_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/routine_provider.dart';
+import 'providers/attendance_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 
@@ -35,6 +36,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => CourseProvider()),
         ChangeNotifierProvider(create: (_) => StudentProvider()),
         ChangeNotifierProvider(create: (_) => RoutineProvider()),
+        ChangeNotifierProvider(create: (_) => AttendanceProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {

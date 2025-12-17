@@ -9,6 +9,8 @@ import '../providers/routine_provider.dart';
 import 'courses_screen.dart';
 import 'students_screen.dart';
 import 'routine_screen.dart';
+import 'attendance_screen.dart';
+import 'summary_screen.dart';
 import 'login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -24,8 +26,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _screens = [
     const CoursesScreen(),
     const StudentsScreen(),
-    const PlaceholderScreen(title: 'Attendance'),
-    const PlaceholderScreen(title: 'Summary'),
+    const AttendanceScreen(),
+    const SummaryScreen(),
     const RoutineScreen(),
   ];
 

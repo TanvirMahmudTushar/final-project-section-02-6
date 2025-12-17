@@ -245,12 +245,18 @@ class FirestoreService {
   }
 
   Future<void> addRoutine(String userId, Routine routine) async {
+    print('FirestoreService.addRoutine called');
+    print('Path: users/$userId/routines/${routine.id}');
+    print('Data: ${routine.toMap()}');
+
     await _firestore
         .collection('users')
         .doc(userId)
         .collection('routines')
         .doc(routine.id)
         .set(routine.toMap());
+
+    print('Firestore write completed successfully');
   }
 
   Future<void> updateRoutine(String userId, Routine routine) async {
